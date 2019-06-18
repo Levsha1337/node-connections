@@ -69,7 +69,7 @@ namespace NodesConnections
             this.processRx();
 
             Random rnd = new Random();
-            if (rnd.Next(100) > 50)
+            if (rnd.Next(100) > 10)
             {
                 Package pkg = new Package(
                     ID, ID, null, null, ID, Package.PackageType.Echo
@@ -93,13 +93,16 @@ namespace NodesConnections
             Debug.WriteLine("{0} have {1} RX!", ID, rx.Count);
             foreach (Package pack in rx)
             {
+                pack.NextStep();
+
+                if (pack.TTL < 0) continue;
+
                 this.xx.Add(pack.ID, 25);
                 if (pack.TTL <= 0) continue;
                 if (pack.to != null && pack.to != ID) {
                     if (pack.via != null && pack.via != ID)
                     {
                         pack.from = ID;
-                        pack.TTL -= 10;
                         this.tx.Add(pack);
                     }
 
@@ -140,19 +143,20 @@ namespace NodesConnections
                             Route[] temp = new Route[this.routes.Count];
                             this.routes.CopyTo(temp);
                             List<Route> newRoutes = temp.ToList();
-                            foreach (Route r in routesPack)
+                            foreach (Route rr in routesPack)
                             {
+                                Route r = new Route(rr.Target, pack.from, rr.TTL);
+                                r.TTL -= 10;
                                 bool has = false;
                                 foreach (Route t in this.routes)
                                 {
                                     if (r.Target == t.Target)
                                     {
-                                        if (r.TTL < t.TTL)
+                                        if (r.TTL > t.TTL)
                                         {
                                             newRoutes.Remove(t);
                                             has = true;
                                             r.NextHop = pack.from;
-                                            r.TTL -= 10;
                                             newRoutes.Add(r);
                                         }
                                     }
@@ -161,7 +165,6 @@ namespace NodesConnections
                                 if (!has)
                                 {
                                     r.NextHop = pack.from;
-                                    r.TTL -= 10;
                                     newRoutes.Add(r);
                                 }
 
