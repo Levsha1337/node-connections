@@ -46,13 +46,23 @@ namespace NodesConnections
 
         public Timer timer;
 
+        public override string ToString()
+        {
+            return "Node #" + this.ID.ToString() + "(" + this.routes.Count.ToString() + " routes)";
+        }
+
         private void tick(object sender, EventArgs e)
         {
             List<Route> newRoutes = new List<Route>();
             foreach (Route r in this.routes)
             {
                 r.HP--;
-                if (r.HP > 0) newRoutes.Add(r);
+                bool viaAlive = false;
+                foreach (Node n in this.near)
+                {
+                    if (n.ID == r.NextHop) viaAlive = true;
+                }
+                if (viaAlive && r.HP > 0) newRoutes.Add(r);
             }
             this.routes = newRoutes;
 
@@ -69,7 +79,7 @@ namespace NodesConnections
             this.processRx();
 
             Random rnd = new Random();
-            if (rnd.Next(100) > 10)
+            if (rnd.Next(100) > -10)
             {
                 Package pkg = new Package(
                     ID, ID, null, null, ID, Package.PackageType.Echo
@@ -77,7 +87,7 @@ namespace NodesConnections
                 this.tx.Add(pkg);
             }
 
-            if (rnd.Next(100) > 50)
+            if (rnd.Next(100) > -50)
             {
                 Package pkg2 = new Package(
                     ID, ID, null, null, routes, Package.PackageType.Route
@@ -90,20 +100,27 @@ namespace NodesConnections
 
         public void processRx()
         {
-            Debug.WriteLine("{0} have {1} RX!", ID, rx.Count);
-            foreach (Package pack in rx)
+            Debug.WriteLine("{0}\t\thave {1}\t\troutes!", ID, routes.Count);
+            Package[] rxx = new Package[rx.Count];
+            rx.CopyTo(rxx);
+            foreach (Package pack in rxx.ToList())
             {
-                pack.NextStep();
-
                 if (pack.TTL < 0) continue;
 
+                if (xx.ContainsKey(pack.ID)) continue;
                 this.xx.Add(pack.ID, 25);
                 if (pack.TTL <= 0) continue;
+
+                if (pack.via == ID)
+                {
+                    this.tx.Add(pack);
+                }
+
                 if (pack.to != null && pack.to != ID) {
                     if (pack.via != null && pack.via != ID)
                     {
-                        pack.from = ID;
-                        this.tx.Add(pack);
+                        //pack.from = ID;
+                        //this.tx.Add(pack);
                     }
 
                     continue;
@@ -116,16 +133,27 @@ namespace NodesConnections
                             int NodeID = (int)pack.data;
                             Route r = new Route(NodeID, NodeID, 100);
                             bool has = false;
+                            Route[] temp = new Route[this.routes.Count];
+                            this.routes.CopyTo(temp);
+                            List<Route> newRoutes = temp.ToList();
                             foreach (Route t in this.routes)
                             {
                                 if (r.Target == t.Target)
                                 {
-                                    t.HP = 10;
                                     has = true;
-                                    break;
+                                    if (r.TTL > t.TTL)
+                                    {
+                                        newRoutes.Remove(t);
+                                        newRoutes.Add(r);
+                                    }
+                                    else
+                                    {
+                                        t.HP = Route.MAX_HP;
+                                    }
                                 }
                             }
                             if (!has) this.routes.Add(r);
+                            else this.routes = newRoutes;
 
                             if (!has && false)
                             {
@@ -145,34 +173,58 @@ namespace NodesConnections
                             List<Route> newRoutes = temp.ToList();
                             foreach (Route rr in routesPack)
                             {
+                                if (rr.Target == ID) continue;
+                                if (rr.NextHop == ID) continue;
                                 Route r = new Route(rr.Target, pack.from, rr.TTL);
                                 r.TTL -= 10;
                                 bool has = false;
-                                foreach (Route t in this.routes)
+                                Route[] tempRoutes = new Route[this.routes.Count];
+                                this.routes.CopyTo(tempRoutes);
+                                foreach (Route t in tempRoutes)
                                 {
                                     if (r.Target == t.Target)
                                     {
+                                        has = true;
                                         if (r.TTL > t.TTL)
                                         {
                                             newRoutes.Remove(t);
-                                            has = true;
-                                            r.NextHop = pack.from;
                                             newRoutes.Add(r);
+                                        }
+                                        else
+                                        {
+                                            t.HP = Route.MAX_HP;
                                         }
                                     }
                                 }
 
                                 if (!has)
                                 {
-                                    r.NextHop = pack.from;
                                     newRoutes.Add(r);
                                 }
+
+                                this.routes = newRoutes;
 
                                 //Package pkg = new Package(
                                 //    ID, ID, null, null, this.routes, Package.PackageType.Route 
                                 //    );
                                 //tx.Add(pkg);
                             }
+                        }
+                        break;
+
+                    case Package.PackageType.Ping:
+                        {
+                            MessageBox.Show(ID.ToString() + ": " + pack.source.ToString() + " pings: " + pack.data.ToString() + "( TTL: " + pack.TTL + ")");
+                            Package pkg = new Package(
+                                this.ID, this.ID, null, pack.source, pack.data, Package.PackageType.Pong
+                                );
+                            this.tx.Add(pkg);
+                        }
+                        break;
+
+                    case Package.PackageType.Pong:
+                        {
+                            MessageBox.Show(ID.ToString() + ": " + pack.source.ToString() + " pongs: " + pack.data.ToString() + "( TTL: " + pack.TTL + ")");
                         }
                         break;
 
@@ -184,19 +236,32 @@ namespace NodesConnections
 
         public void sendTx()
         {
-            foreach (Package pkg in this.tx)
+            foreach (Package pack in this.tx)
             {
+                pack.from = ID;
+                int? via = null;
+                foreach (Route r in this.routes)
+                {
+                    if (r.Target == pack.to)
+                    {
+                        via = r.NextHop;
+                        break;
+                    }
+                }
+                pack.via = via;
+                pack.NextStep();
+
                 foreach (Node n in this.near)
                 {
                     try
                     {
-                        if (n.xx.ContainsKey(pkg.ID)) continue;
-                        if (n.rx.Contains(pkg)) continue;
-                        n.rx.Add(pkg);
+                        if (n.xx.ContainsKey(pack.ID)) continue;
+                        if (n.rx.Contains(pack)) continue;
+                        n.rx.Add(pack);
                     }
                     catch (Exception Ex)
                     {
-                        Console.WriteLine("{0} already has {1} (from {2})", n.ID, pkg.ID, this.ID);
+                        Debug.WriteLine("{0} already has {1} (from {2})", n.ID, pack.ID, this.ID);
                     }
                 }
             }

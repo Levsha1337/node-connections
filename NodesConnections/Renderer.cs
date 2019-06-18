@@ -26,7 +26,7 @@ namespace NodesConnections
 
         public static void Render()
         {
-            g.Clear(Color.Black);
+            g.Clear(Color.White);
 
             float nr = Node.DEFAULT_DRAW_RADIUS;
             float nr2 = nr * 2.0f;
@@ -50,19 +50,23 @@ namespace NodesConnections
                         );
                 }
 
-                g.FillEllipse(br, x + n.x, y + n.y, nr2, nr2);
-                g.DrawEllipse(pen, x + n.x, y + n.y, nr2, nr2);
-                g.DrawString(n.ID.ToString(), new Font(FontFamily.Families.ElementAt(0), 20.0f), 
-                    Brushes.text_fill, n.x + x, n.y + y + 5.0f);
-
                 foreach (Route r in n.routes)
                 {
                     if (r.TTL != 100) continue;
                     Node m = Global.GetNode(r.NextHop);
-                    g.DrawLine(Pens.link_out,
-                        x + n.x + nr, y + n.y + nr,
-                        x + m.x + nr, y + m.y + nr);
+                    try
+                    {
+                        g.DrawLine(Pens.link_out,
+                            x + n.x + nr, y + n.y + nr,
+                            x + m.x + nr, y + m.y + nr);
+                    }
+                    catch { }
                 }
+
+                g.FillEllipse(br, x + n.x, y + n.y, nr2, nr2);
+                g.DrawEllipse(pen, x + n.x, y + n.y, nr2, nr2);
+                g.DrawString(n.ID.ToString(), new Font(FontFamily.Families.ElementAt(0), 20.0f), 
+                    Brushes.text_fill, n.x + x, n.y + y + 5.0f);
 
                 foreach (Node m in Global.nodes)
                 {
@@ -87,7 +91,7 @@ namespace NodesConnections
                 = new SolidBrush(Color.FromArgb(64, Color.LightGreen));
 
             public static Brush text_fill
-                = new SolidBrush(Color.FromArgb(255, Color.White));
+                = new SolidBrush(Color.FromArgb(255, Color.Black));
         }
 
         private class Pens

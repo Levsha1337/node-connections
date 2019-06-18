@@ -13,7 +13,8 @@ namespace NodesConnections
         public int NextHop;
         public int TTL;
 
-        public int HP = 10;
+        public int HP = MAX_HP;
+        public const int MAX_HP = 6;
 
         private static int LastID = 0;
 
@@ -24,6 +25,11 @@ namespace NodesConnections
             this.TTL = TTL;
 
             this.ID = LastID++;
+        }
+
+        public override string ToString()
+        {
+            return "Route #" + this.ID.ToString() + " (to " + this.Target.ToString() + ")";
         }
     }
 }

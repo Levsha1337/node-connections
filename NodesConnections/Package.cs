@@ -20,7 +20,7 @@ namespace NodesConnections
         //public int[,] mtx;
         public object data;
 
-        public int TTL = 100;
+        public int TTL = 110;
 
         public PackageType type;
 
@@ -43,11 +43,16 @@ namespace NodesConnections
             TTL -= 10;
         }
 
-        public override bool Equals(object obj)
-        {
-            return obj is Package package &&
-                   this.ID == package.ID;
-        }
+        //public override bool Equals(object obj)
+        //{
+        //    return obj is Package package &&
+        //           this.ID == package.ID;
+        //}
+
+        //public override int GetHashCode()
+        //{
+        //    return base.GetHashCode();
+        //}
 
         public enum PackageType
         {

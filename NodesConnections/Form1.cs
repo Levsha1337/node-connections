@@ -103,8 +103,11 @@ namespace NodesConnections
         private void Button1_Click(object sender, EventArgs e)
         { // add
             Node n = new Node(-Renderer.x + 200, -Renderer.y + 200, 100);
-            n.CheckNear();
             Global.nodes.Add(n);
+            foreach (Node nn in Global.nodes)
+            {
+                nn.CheckNear();
+            }
             Renderer.Render();
         }
 
@@ -113,6 +116,7 @@ namespace NodesConnections
         { // delete
             if (Global.selected == null) return;
 
+            Global.selected.timer.Stop();
             Global.nodes.Remove(Global.selected);
             Global.selected = null;
             Renderer.Render();
@@ -140,7 +144,7 @@ namespace NodesConnections
 
         private void NumericUpDown1_ValueChanged(object sender, EventArgs e)
         {
-            button7.Text = "Initialize from " + numericUpDown1.Value.ToString();
+            button7.Text = "Ping to " + numericUpDown1.Value.ToString();
         }
 
         //initiate
@@ -159,9 +163,9 @@ namespace NodesConnections
                     }
                 }
                 Package pkg = new Package(
-                    ID, ID, null, null, ID, Package.PackageType.Echo
+                    Global.selected.ID, Global.selected.ID, null, initial.ID, "Hi!", Package.PackageType.Ping
                     );
-                initial.tx.Add(pkg);
+                Global.selected.tx.Add(pkg);
             }
             catch (Exception Ex)
             {

@@ -128,7 +128,7 @@
             this.button7.Name = "button7";
             this.button7.Size = new System.Drawing.Size(114, 20);
             this.button7.TabIndex = 8;
-            this.button7.Text = "Initialize from 0";
+            this.button7.Text = "Ping to 0";
             this.button7.UseVisualStyleBackColor = true;
             this.button7.Click += new System.EventHandler(this.Button7_Click);
             // 
