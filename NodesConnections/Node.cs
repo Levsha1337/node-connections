@@ -24,27 +24,6 @@ namespace NodesConnections
             this.timer.Start();
         }
 
-        private void tick(object sender, EventArgs e)
-        {
-            List<Route> newRoutes = new List<Route>();
-            foreach (Route r in this.routes)
-            {
-                r.HP--;
-                if (r.HP > 0) newRoutes.Add(r);
-            }
-            this.routes = newRoutes;
-
-            this.processRx();
-
-            Package pkg = new Package(
-                    ID, ID, null, null, ID, Package.PackageType.Echo
-                    );
-
-            this.tx.Add(pkg);
-
-            this.sendTx();
-        }
-
         public int ID;
 
         public float x;
@@ -57,6 +36,7 @@ namespace NodesConnections
 
         public List<Package> rx = new List<Package>();
         public List<Package> tx = new List<Package>();
+        public Dictionary<int, int> xx = new Dictionary<int, int>();
 
         public List<Route> routes = new List<Route>();
 
@@ -66,10 +46,55 @@ namespace NodesConnections
 
         public Timer timer;
 
+        private void tick(object sender, EventArgs e)
+        {
+            List<Route> newRoutes = new List<Route>();
+            foreach (Route r in this.routes)
+            {
+                r.HP--;
+                if (r.HP > 0) newRoutes.Add(r);
+            }
+            this.routes = newRoutes;
+
+            Dictionary<int, int> xy = new Dictionary<int, int>();
+            foreach (KeyValuePair<int, int> kvp in xx)
+            {
+                int k = kvp.Key;
+                int v = kvp.Value;
+                v--;
+                if (v > 0) xy.Add(k, v);
+            }
+            xx = xy;
+
+            this.processRx();
+
+            Random rnd = new Random();
+            if (rnd.Next(100) > 50)
+            {
+                Package pkg = new Package(
+                    ID, ID, null, null, ID, Package.PackageType.Echo
+                );
+                this.tx.Add(pkg);
+            }
+
+            if (rnd.Next(100) > 50)
+            {
+                Package pkg2 = new Package(
+                    ID, ID, null, null, routes, Package.PackageType.Route
+                );
+                this.tx.Add(pkg2);
+            }
+
+            this.sendTx();
+        }
+
         public void processRx()
         {
+            Debug.WriteLine("{0} have {1} RX!", ID, rx.Count);
             foreach (Package pack in rx)
             {
+                this.xx.Add(pack.ID, 25);
+                if (pack.TTL <= 0) continue;
                 if (pack.to != null && pack.to != ID) {
                     if (pack.via != null && pack.via != ID)
                     {
@@ -99,7 +124,7 @@ namespace NodesConnections
                             }
                             if (!has) this.routes.Add(r);
 
-                            if (!has)
+                            if (!has && false)
                             {
                                 Package pkg = new Package(
                                     ID, ID, null, null, this.routes, Package.PackageType.Route
@@ -112,26 +137,38 @@ namespace NodesConnections
                     case Package.PackageType.Route:
                         {
                             List<Route> routesPack = (List<Route>)pack.data;
+                            Route[] temp = new Route[this.routes.Count];
+                            this.routes.CopyTo(temp);
+                            List<Route> newRoutes = temp.ToList();
                             foreach (Route r in routesPack)
                             {
+                                bool has = false;
                                 foreach (Route t in this.routes)
                                 {
                                     if (r.Target == t.Target)
                                     {
                                         if (r.TTL < t.TTL)
                                         {
-                                            this.routes.Remove(t);
+                                            newRoutes.Remove(t);
+                                            has = true;
                                             r.NextHop = pack.from;
                                             r.TTL -= 10;
-                                            this.routes.Add(r);
+                                            newRoutes.Add(r);
                                         }
                                     }
                                 }
 
-                                Package pkg = new Package(
-                                    ID, ID, null, null, this.routes, Package.PackageType.Route 
-                                    );
-                                tx.Add(pkg);
+                                if (!has)
+                                {
+                                    r.NextHop = pack.from;
+                                    r.TTL -= 10;
+                                    newRoutes.Add(r);
+                                }
+
+                                //Package pkg = new Package(
+                                //    ID, ID, null, null, this.routes, Package.PackageType.Route 
+                                //    );
+                                //tx.Add(pkg);
                             }
                         }
                         break;
@@ -150,6 +187,8 @@ namespace NodesConnections
                 {
                     try
                     {
+                        if (n.xx.ContainsKey(pkg.ID)) continue;
+                        if (n.rx.Contains(pkg)) continue;
                         n.rx.Add(pkg);
                     }
                     catch (Exception Ex)

@@ -36,9 +36,17 @@ namespace NodesConnections
             ID = lastID++;
         }
 
+
+
         public void NextStep()
         {
             TTL -= 10;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Package package &&
+                   this.ID == package.ID;
         }
 
         public enum PackageType
