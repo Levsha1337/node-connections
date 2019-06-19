@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -171,6 +172,58 @@ namespace NodesConnections
             {
                 MessageBox.Show(Ex.Message);
             }
+        }
+
+        // save
+        private void Button4_Click(object sender, EventArgs e)
+        {
+            List<string> lines = new List<string>();
+            lines.Add(Renderer.x.ToString());
+            lines.Add(Renderer.y.ToString());
+
+            lines.Add(Global.nodes.Count.ToString());
+
+            for (int i = 0; i < Global.nodes.Count; i++)
+            {
+                Node n = Global.nodes.ElementAt(i);
+                lines.Add(((int)n.x).ToString());
+                lines.Add(((int)n.y).ToString());
+                lines.Add(((int)n.radius).ToString());
+            }
+
+            File.WriteAllLines(Global.FILE_PATH, lines.ToArray());
+        }
+
+        // open
+        private void Button5_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Are you sure?", "Accept", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+
+            Global.nodes.Clear();
+            string[] lines = File.ReadAllLines(Global.FILE_PATH);
+
+            Renderer.x = Convert.ToInt32(lines[0]);
+            Renderer.y = Convert.ToInt32(lines[1]);
+
+            int count = Convert.ToInt32(lines[2]);
+
+            for (int i = 0; i < count; i++)
+            {
+                int x  = Convert.ToInt32(lines[i * 3 + 0 + 3]);
+                int y  = Convert.ToInt32(lines[i * 3 + 1 + 3]);
+                int r  = Convert.ToInt32(lines[i * 3 + 2 + 3]);
+                Node node = new Node(
+                    x, y, r
+                    );
+                Global.nodes.Add(node);
+            }
+
+            foreach (Node n in Global.nodes)
+            {
+                n.CheckNear();
+            }
+
+            Renderer.Render();
         }
     }
 }

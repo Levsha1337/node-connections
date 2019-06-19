@@ -146,7 +146,7 @@ namespace NodesConnections
                                         newRoutes.Remove(t);
                                         newRoutes.Add(r);
                                     }
-                                    else
+                                    else if (r.TTL == t.TTL)
                                     {
                                         t.HP = Route.MAX_HP;
                                     }
@@ -171,6 +171,25 @@ namespace NodesConnections
                             Route[] temp = new Route[this.routes.Count];
                             this.routes.CopyTo(temp);
                             List<Route> newRoutes = temp.ToList();
+                            
+                            foreach (Route r in this.routes)
+                            {
+                                if (r.NextHop == pack.from && r.Target != pack.from)
+                                {
+                                    bool stillHave = false;
+                                    foreach (Route t in routesPack)
+                                    {
+                                        if (t.Target == r.Target)
+                                        {
+                                            stillHave = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!stillHave) newRoutes.Remove(r);
+                                }
+                            }
+                            this.routes = newRoutes;
+
                             foreach (Route rr in routesPack)
                             {
                                 if (rr.Target == ID) continue;
@@ -185,7 +204,7 @@ namespace NodesConnections
                                     if (r.Target == t.Target)
                                     {
                                         has = true;
-                                        if (r.TTL > t.TTL)
+                                        if (r.TTL > t.TTL-10)
                                         {
                                             newRoutes.Remove(t);
                                             newRoutes.Add(r);

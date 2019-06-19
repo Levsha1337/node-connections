@@ -13,6 +13,7 @@ namespace NodesConnections
         public static Node selected = null;
         public static Node pingStart = null;
         public static bool showRadius = false;
+        public const string FILE_PATH = "nodes_info.txt";
 
         public static Node GetNode(int ID)
         {
